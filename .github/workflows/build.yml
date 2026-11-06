@@ -1,0 +1,123 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      run: pip install uv
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras
+        uv pip install pyinstaller
+
+    - name: Install platform-specific dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: uv pip install win10toast
+
+    - name: Build executable
+      run: uv run pyinstaller --onefile --name "pomodoro-timer" src/pomodoro_timer/__main__.py
+
+    - name: Rename binary (Linux)
+      if: runner.os == 'Linux'
+      run: mv dist/pomodoro-timer dist/pomodoro-timer-linux
+
+    - name: Rename binary (macOS)
+      if: runner.os == 'macOS'
+      run: mv dist/pomodoro-timer dist/pomodoro-timer-macos
+
+    - name: Rename binary (Windows)
+      if: runner.os == 'Windows'
+      run: mv dist/pomodoro-timer.exe dist/pomodoro-timer-windows.exe
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: pomodoro-timer-${{ github.ref_name }}-${{ matrix.os }}
+        path: dist/pomodoro-timer-*
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts/
+    
+    - name: List downloaded artifacts
+      run: find artifacts/ -type f
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Pomodoro Timer ${{ github.ref_name }}
+        body: |
+          ## Pomodoro Timer ${{ github.ref_name }}
+
+          Advanced Pomodoro Technique timer for terminal.
+
+          ### Downloads
+
+          - **Linux**: `pomodoro-timer-linux` - Compatible with most distributions
+          - **macOS**: `pomodoro-timer-macos` - Native for Apple Silicon/Intel
+          - **Windows**: `pomodoro-timer-windows.exe` - Windows 10/11 compatible
+
+          ### Installation Options
+
+          **Option 1: From PyPI**
+          ```bash
+          pip install pomodoro-timer
+          pomodoro
+          ```
+
+          **Option 2: Download executable**
+
+          Linux/macOS:
+          ```bash
+          chmod +x pomodoro-timer-*
+          ./pomodoro-timer-*
+          ```
+
+          Windows:
+          ```cmd
+          pomodoro-timer-windows.exe
+          ```
+
+          ### What's Included
+          - Pomodoro timer with work/break cycles
+          - Customizable durations
+          - Desktop notifications
+          - Terminal-based interface
+        files: |
+          artifacts/pomodoro-timer-${{ github.ref_name }}-ubuntu-latest/pomodoro-timer-linux
+          artifacts/pomodoro-timer-${{ github.ref_name }}-macos-latest/pomodoro-timer-macos
+          artifacts/pomodoro-timer-${{ github.ref_name }}-windows-latest/pomodoro-timer-windows.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
