@@ -2,6 +2,10 @@
 
 A Pomodoro timer for the terminal, written in Go. Single binary, no runtime required.
 
+[![Tests](https://github.com/jmeiracorbal/pomodoro-timer/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/jmeiracorbal/pomodoro-timer/actions/workflows/test.yml)
+[![Release](https://github.com/jmeiracorbal/pomodoro-timer/actions/workflows/release.yml/badge.svg)](https://github.com/jmeiracorbal/pomodoro-timer/actions/workflows/release.yml)
+[![Go version](https://img.shields.io/badge/Go-1.26.5-00ADD8?logo=go)](https://go.dev/dl/)
+[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-blue)](https://github.com/jmeiracorbal/pomodoro-timer/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Install
