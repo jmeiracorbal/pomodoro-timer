@@ -1,10 +1,8 @@
-# 🍅 Pomodoro Timer
+# Pomodoro Timer
+
+A Pomodoro timer for the terminal, written in Go. Single binary, no runtime required.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go](https://img.shields.io/badge/Go-1.22%2B-00ADD8.svg)](https://golang.org/)
-[![Cross-Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-green.svg)](https://github.com/jmeiracorbal/pomodoro-timer)
-
-A focused Pomodoro timer for the terminal, written in Go. Single binary, no runtime required.
 
 ## Install
 
