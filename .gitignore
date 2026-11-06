@@ -1,0 +1,27 @@
+# Binaries
+/pomodoro
+pomodoro-*
+*.exe
+
+# Build output
+/dist/
+
+# Go
+vendor/
+
+# macOS
+.DS_Store
+
+# IDE
+.cursor/
+.vscode/
+.idea/
+
+# Misc
+*.log
+
+.codegraph/
+.mnemo
+.pi/
+AGENTS.md
+CLAUDE.md

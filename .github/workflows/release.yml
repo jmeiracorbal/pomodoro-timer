@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+          - goos: windows
+            goarch: arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          EXT=""
+          [ "${{ matrix.goos }}" = "windows" ] && EXT=".exe"
+          OUT="pomodoro-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}"
+          go build \
+            -ldflags="-s -w -X main.version=${VERSION}" \
+            -o "${OUT}" \
+            ./cmd/pomodoro
+          sha256sum "${OUT}" > "${OUT}.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pomodoro-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: pomodoro-*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Pomodoro Timer ${{ github.ref_name }}
+          body: |
+            ## Pomodoro Timer ${{ github.ref_name }}
+
+            A focused Pomodoro timer for the terminal, written in Go. Single binary, no runtime required.
+
+            ### Quick install (Linux / macOS)
+
+            ```bash
+            curl -sSf https://raw.githubusercontent.com/jmeiracorbal/pomodoro-timer/main/install.sh | bash
+            ```
+
+            ### Downloads
+
+            | Platform | Binary |
+            |----------|--------|
+            | Linux x86-64 | `pomodoro-linux-amd64` |
+            | Linux ARM64 | `pomodoro-linux-arm64` |
+            | macOS x86-64 | `pomodoro-darwin-amd64` |
+            | macOS ARM64 (Apple Silicon) | `pomodoro-darwin-arm64` |
+            | Windows x86-64 | `pomodoro-windows-amd64.exe` |
+            | Windows ARM64 | `pomodoro-windows-arm64.exe` |
+
+            ### Usage
+
+            ```
+            pomodoro -w 25 -s 5 -l 15 -c 4
+            ```
+          files: dist/**
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
