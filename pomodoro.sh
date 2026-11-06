@@ -248,7 +248,8 @@ run_timer() {
     
     local total_seconds=$((duration_minutes * 60))
     local remaining_seconds=$total_seconds
-    
+    PAUSED=false
+
     # Clear screen and show header
     clear
     echo -e "${CYAN}🍅 Pomodoro Timer v${VERSION}${NC}"
@@ -266,9 +267,10 @@ run_timer() {
             draw_progress_bar $((total_seconds - remaining_seconds)) $total_seconds
             
             # Check for keyboard input (non-blocking)
-            if read -t 1 -n 1 key 2>/dev/null; then
+            if IFS= read -s -t 1 -n 1 key 2>/dev/null; then
                 case $key in
                     ' ') # Space - pause/resume
+                        while IFS= read -s -t 0.05 -n 1 2>/dev/null; do :; done
                         PAUSED=true
                         echo -e "\n${YELLOW}⏸️  PAUSED - Press SPACE to resume${NC}"
                         continue
@@ -292,15 +294,25 @@ run_timer() {
             remaining_seconds=$((remaining_seconds - 1))
         else
             # Paused state
-            if read -t 1 -n 1 key 2>/dev/null; then
+            if IFS= read -s -t 1 -n 1 key 2>/dev/null; then
                 case $key in
                     ' ') # Space - resume
+                        while IFS= read -s -t 0.05 -n 1 2>/dev/null; do :; done
                         PAUSED=false
                         echo -e "\r${GREEN}▶️  RESUMED                    ${NC}"
                         ;;
                     'q'|'Q') # Quit
                         echo -e "\n${RED}❌ Session cancelled${NC}"
                         return 1
+                        ;;
+                    's'|'S') # Skip
+                        echo -e "\n${YELLOW}⏭️  Session skipped${NC}"
+                        break
+                        ;;
+                    'r'|'R') # Reset
+                        remaining_seconds=$total_seconds
+                        PAUSED=false
+                        echo -e "\n${BLUE}🔄 Timer reset${NC}"
                         ;;
                 esac
             fi
@@ -361,33 +373,37 @@ reset_stats() {
 
 # Main pomodoro session manager
 start_pomodoro() {
-    echo -e "${CYAN}🍅 Starting Pomodoro Session ${CURRENT_SESSION}${NC}"
-    echo
-    
-    # Work session
-    if run_timer $WORK_TIME "work" "🎯 Work Session $CURRENT_SESSION"; then
-        # Break time
-        if [ $((CURRENT_SESSION % SESSIONS_UNTIL_LONG)) -eq 0 ]; then
-            # Long break
-            echo -e "${GREEN}Time for a long break! 🌟${NC}"
-            sleep 2
-            run_timer $LONG_BREAK "break" "☕ Long Break"
-            CURRENT_SESSION=1
-        else
-            # Short break
-            echo -e "${GREEN}Time for a short break! ☕${NC}"
-            sleep 2
-            run_timer $SHORT_BREAK "break" "🌱 Short Break"
-            CURRENT_SESSION=$((CURRENT_SESSION + 1))
-        fi
-        
-        # Ask if user wants to continue
+    while true; do
+        echo -e "${CYAN}🍅 Starting Pomodoro Session ${CURRENT_SESSION}${NC}"
         echo
-        read -p "Start next session? (Y/n): " continue_session
-        if [ "$continue_session" != "n" ] && [ "$continue_session" != "N" ]; then
-            start_pomodoro
+
+        # Work session
+        if run_timer $WORK_TIME "work" "🎯 Work Session $CURRENT_SESSION"; then
+            # Break time
+            if [ $((CURRENT_SESSION % SESSIONS_UNTIL_LONG)) -eq 0 ]; then
+                # Long break
+                echo -e "${GREEN}Time for a long break! 🌟${NC}"
+                sleep 2
+                run_timer $LONG_BREAK "break" "☕ Long Break"
+                CURRENT_SESSION=1
+            else
+                # Short break
+                echo -e "${GREEN}Time for a short break! ☕${NC}"
+                sleep 2
+                run_timer $SHORT_BREAK "break" "🌱 Short Break"
+                CURRENT_SESSION=$((CURRENT_SESSION + 1))
+            fi
+
+            # Ask if user wants to continue
+            echo
+            read -p "Start next session? (Y/n): " continue_session
+            if [ "$continue_session" = "n" ] || [ "$continue_session" = "N" ]; then
+                break
+            fi
+        else
+            break
         fi
-    fi
+    done
 }
 
 # Parse command line arguments
